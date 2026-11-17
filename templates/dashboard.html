@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - IV Curve Tester</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Three.js Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            color: #1e3a8a;
+            font-size: 1.25rem;
+        }
+
+        .navbar-brand i {
+            color: #2563eb;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .dashboard-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        .card-header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.75rem;
+        }
+
+        .card-header-title i {
+            color: #2563eb;
+            margin-right: 0.5rem;
+        }
+
+        /* KPI Values */
+        .value-box {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0;
+        }
+
+        .value-box:not(:last-child) {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .value-box .label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .value-box .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        
+        .value-box .unit {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .value-box.pmax {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .value-box.pmax .label {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .value-box.pmax .value {
+            color: #16a34a;
+            font-size: 2.25rem;
+        }
+
+        /* Main areas */
+        .chart-container, .model-wrapper {
+            position: relative;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Buttons */
+        .btn-pill {
+            border-radius: 50px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-pill:hover {
+            opacity: 0.8;
+            color: white;
+        }
+
+        .btn-launch {
+            background-color: #1e40af;
+            color: white;
+        }
+
+
+        
+        .btn-save {
+            background-color: #0d9488;
+            color: white;
+        }
+        
+        .btn-export {
+            background-color: transparent;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-lg d-flex justify-content-between">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+        <i class="fas fa-microchip"></i>
+        IV Curve Tester Dashboard
+    </a>
+</nav>
+
+<div class="container-fluid px-xl-5 pb-5">
+    
+    <div class="row g-4">
+
+        <!-- LEFT: VALUES -->
+        <div class="col-xl-2 col-lg-3">
+            <div class="dashboard-card h-100 d-flex flex-column">
+                <h4 class="card-header-title">
+                    <i class="fas fa-list-ul"></i> Telemetry Data
+                </h4>
+                
+                <div class="value-box">
+                    <div class="label">Open Circuit (Voc)</div>
+                    <div class="value" id="voc">21.50 <span class="unit">V</span></div>
+                </div>
+                <div class="value-box">
+                    <div class="label">Short Circuit (Isc)</div>
+                    <div class="value" id="isc">5.20 <span class="unit">A</span></div>
+                </div>
+                <div class="value-box">
+                    <div class="label">Max Voltage (Vmp)</div>
+                    <div class="value" id="vmp">18.40 <span class="unit">V</span></div>
+                </div>
+                <div class="value-box">
+                    <div class="label">Max Current (Imp)</div>
+                    <div class="value" id="imp">4.80 <span class="unit">A</span></div>
+                </div>
+                <div class="value-box pmax flex-grow-1 justify-content-center">
+                    <div class="label">Max Power (Pmax)</div>
+                    <div class="value" id="pmax">88.32 <span class="unit" style="color: #16a34a">W</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER: 3D MODEL -->
+        <div class="col-xl-5 col-lg-4">
+            <div class="dashboard-card h-100 model-wrapper">
+                <h4 class="card-header-title">
+                    <i class="fas fa-cube"></i> Device Status
+                </h4>
+                <div id="model-container" style="flex: 1; position: relative; z-index: 5; cursor: grab; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <!-- Three.js Interactive 3D Model will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: CHART -->
+        <div class="col-xl-5 col-lg-5">
+            <div class="dashboard-card h-100 chart-container">
+                <h4 class="card-header-title">
+                    <i class="fas fa-chart-area"></i> I-V Characteristics
+                </h4>
+                <div style="flex:1; position: relative;">
+                    <canvas id="ivChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- BOTTOM ACTIONS -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="dashboard-card d-flex justify-content-center gap-3">
+                <button class="btn-pill btn-launch" onclick="startTest()">
+                    <i class="fas fa-play"></i> Run Diagnostics
+                </button>
+        
+                <a href="/save" class="btn-pill btn-save">
+                    <i class="fas fa-save"></i> Save Record
+                </a>
+        
+                <button onclick="exportPDF()" class="btn-pill btn-export">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for PDF Export with Graph -->
+    <form id="pdfForm" action="/export_pdf" method="POST" style="display: none;">
+        <input type="hidden" name="image" id="pdfImage">
+    </form>
+
+</div>
+
+<script src="/static/js/tester3d.js"></script>
+<script>
+let testerModel = null;
+window.addEventListener('DOMContentLoaded', () => {
+    testerModel = initTester3D('model-container');
+    if(testerModel) {
+        testerModel.updateScreen('21.50', '5.20');
+    }
+});
+
+// Chart.js Light Styling
+Chart.defaults.font.family = 'Inter';
+Chart.defaults.color = '#64748b';
+
+let voltage=[0,2,4,6,8,10,12,14,16,18,20,21.5];
+let current=[5.2,5.2,5.18,5.15,5.10,5.00,4.90,4.70,4.30,3.50,1.50,0];
+
+const ctx=document.getElementById('ivChart').getContext('2d');
+
+let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(37, 99, 235, 0.4)'); // #2563eb
+gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
+const chart=new Chart(ctx,{
+    type:'line',
+    data:{
+        labels:voltage,
+        datasets:[{
+            label:'Current (A)',
+            data:current,
+            borderColor:'#2563eb',
+            backgroundColor: gradient,
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#2563eb',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#2563eb',
+            pointHoverBorderColor: '#ffffff',
+            fill:true,
+            tension:0.3
+        }]
+    },
+    options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+            legend:{
+                display:true,
+                labels: {
+                    color: '#0f172a',
+                    font: { size: 13, weight: '500' }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                titleColor: '#0f172a',
+                bodyColor: '#334155',
+                borderColor: '#e2e8f0',
+                borderWidth: 1,
+                padding: 10,
+                cornerRadius: 8
+            }
+        },
+        scales:{
+            x:{
+                grid: {
+                    color: '#f1f5f9',
+                    drawBorder: false,
+                },
+                ticks: { color: '#64748b', font: { size: 12 } },
+                title:{
+                    display:true,
+                    text:'Voltage (V)',
+                    color: '#0f172a',
+                    font:{size:13,weight:'600'}
+                }
+            },
+            y:{
+                grid: {
+                    color: '#f1f5f9',
+                    drawBorder: false,
+                },
+                beginAtZero:true,
+                ticks: { color: '#64748b', font: { size: 12 } },
+                title:{
+                    display:true,
+                    text:'Current (A)',
+                    color: '#0f172a',
+                    font:{size:13,weight:'600'}
+                }
+            }
+        }
+    }
+});
+
+function startTest(){
+    let voc=(20+Math.random()*3).toFixed(2);
+    let isc=(5+Math.random()*0.4).toFixed(2);
+    let vmp=(17+Math.random()*2).toFixed(2);
+    let imp=(4+Math.random()).toFixed(2);
+    let pmax=(vmp*imp).toFixed(2);
+
+    document.getElementById("voc").innerHTML=voc+' <span class="unit">V</span>';
+    document.getElementById("isc").innerHTML=isc+' <span class="unit">A</span>';
+    document.getElementById("vmp").innerHTML=vmp+' <span class="unit">V</span>';
+    document.getElementById("imp").innerHTML=imp+' <span class="unit">A</span>';
+    document.getElementById("pmax").innerHTML=pmax+' <span class="unit" style="color: #16a34a">W</span>';
+
+    current=[
+        parseFloat(isc),
+        parseFloat(isc),
+        parseFloat(isc)-0.02,
+        parseFloat(isc)-0.05,
+        parseFloat(isc)-0.10,
+        parseFloat(isc)-0.20,
+        parseFloat(isc)-0.35,
+        parseFloat(isc)-0.60,
+        parseFloat(isc)-1.00,
+        parseFloat(isc)-1.80,
+        parseFloat(isc)-3.60,
+        0
+    ];
+
+    chart.data.datasets[0].data=current;
+    chart.update();
+
+    if (testerModel) {
+        testerModel.updateScreen(voc, isc);
+    }
+}
+
+function exportPDF() {
+    // chart is the Chart.js instance defined above
+    const imgData = chart.toBase64Image();
+    document.getElementById('pdfImage').value = imgData;
+    document.getElementById('pdfForm').submit();
+}
+</script>
+
+</body>
+</html>
